@@ -190,8 +190,6 @@ def q(m1,m2):
         return m1/m2
 
 
-
-
 # Here we create a function which when called, it will generate a GW of mass "m", emitted from a inspiral with inclination "incl" and emitted from a distance "dist".
 
 def template(m1, m2, incl, dist, cut_off):
