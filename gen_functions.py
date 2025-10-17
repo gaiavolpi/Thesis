@@ -192,7 +192,7 @@ def SNR(model, noise):
 
     model_copy = model.copy()
     model_copy.resize(len(candidate))
-
     snr = pycbc_fil.matchedfilter.matched_filter(model_copy, candidate, psd=AdvV_PSD, low_frequency_cutoff=30.0)
+    SNR = max(abs(snr))
 
-    return snr
+    return SNR
