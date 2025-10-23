@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import pycbc.types 
+import pandas as pd
 from glob import glob
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
@@ -65,7 +66,8 @@ def process_data(data):
     data = data.highpass_fir(frec_low_cutoff, 8, beta=5.0, remove_corrupted=True) # bandpassing: supress data for frec<30
 
     # normalising data to 1
-    data = data / max(data)
+    # data = data / max(data)
+    data = data / max(np.abs(data))
 
     # append zeros to beginning and end of the data to keep the input shape unchanged after cropping corrupted segments
     length_cr = len(data)
@@ -78,13 +80,25 @@ def process_data(data):
 
     return data
 
-def split_train_val(X, y, val_size=0.2):
+def get_params(path):
     '''
-    This function splits the dataset into training and validation sets.
+    This function extracts the chirp mass and mass ratio from the filename.
     '''
-    
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=val_size, random_state=42, stratify=y)
-    return X_train, X_val, y_train, y_val
+
+    csv_dir = os.path.join('/', *path.split(os.sep)[:6])
+    name = os.path.splitext(os.path.basename(path))[0]
+
+    if 'Training' in path:
+        csv_path = os.path.join(csv_dir, 'Records_training_signal.csv')
+    else:
+        csv_path = os.path.join(csv_dir, 'Records_test_signal.csv')
+
+    df = pd.read_csv(csv_path, sep='\t')
+    row = df.loc[df['Ref.Name'] == name]
+    chirp_mass = row['Chirp mass'].values[0]
+    mass_ratio = row['Mass ratio'].values[0]
+
+    return chirp_mass, mass_ratio
 
 def load_dataset(mass_range, train=True, root_dir='/home/alberto_sinigaglia/gaia'):
     '''
@@ -99,9 +113,11 @@ def load_dataset(mass_range, train=True, root_dir='/home/alberto_sinigaglia/gaia
     for idx in tqdm(range(len(signal_paths))):
         sig = process_data(load_data(signal_paths[idx]))
         X.append(sig)
-        y.append(1) # label 1 for signal
+        chirp_mass, mass_ratio = get_params(signal_paths[idx])
+        y.append((1, chirp_mass, mass_ratio))
+            
         noise = process_data(load_data(noise_paths[idx]))
         X.append(noise)
-        y.append(0) # label 0 for noise
+        y.append((0, None, None)) # label 0 for noise (classification)
 
     return np.array(X), np.array(y)
