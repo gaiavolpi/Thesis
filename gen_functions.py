@@ -59,7 +59,7 @@ def q(m1,m2):
     q -- mass ratio
 
     """
-    if m1>m2:
+    if m1>=m2:
         return m2/m1
     elif m1<m2:
         return m1/m2

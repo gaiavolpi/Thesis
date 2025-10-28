@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import matplotlib
+from sklearn.preprocessing import StandardScaler
 
 
 def split_train_val(X, y, val_size=0.2):
@@ -13,23 +14,37 @@ def split_train_val(X, y, val_size=0.2):
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=val_size, random_state=42, stratify=y)
     return X_train, X_val, y_train, y_val
 
-def make_dataset(X, y, batch_size, shuffle=True):
+def make_dataset(X, y, batch_size, classification, shuffle=True):
     '''
     This function creates a TensorFlow dataset from numpy arrays.
     '''
     X = X.astype('float32')
     X = np.reshape(X, (X.shape[0], X.shape[1], 1))
     y = y.astype('float32')
-    y = np.reshape(y, (y.shape[0], 1))
 
+    if classification:
+        y = y[:,0]
+        y = np.reshape(y, (y.shape[0], 1))
+    else:
+        y = y[:,1:]
+
+        # Standardize the targets
+        scaler = StandardScaler()
+        y = scaler.fit_transform(y)
+
+        y = np.reshape(y, (y.shape[0], 2))
+    
     dataset = tf.data.Dataset.from_tensor_slices((X, y))
 
     if shuffle:
         dataset = dataset.shuffle(buffer_size=len(X))
         
     dataset = dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
-    
-    return dataset
+
+    if classification:
+        return dataset
+    else:
+        return dataset, scaler
 
 def plot_tp_fp(y_test_pred, title, save_path=None, bins=100, figsize=(10,8)):
     
@@ -68,9 +83,6 @@ def plot_tp_fp(y_test_pred, title, save_path=None, bins=100, figsize=(10,8)):
     plt.show()
     plt.close(fig)
 
-import matplotlib.pyplot as plt
-import matplotlib
-
 def plot_signal_noise(y_test_pred, title, save_path=None, bins=100, figsize=(10,8)):
 
     fig = plt.figure(figsize=figsize)
@@ -108,5 +120,50 @@ def plot_signal_noise(y_test_pred, title, save_path=None, bins=100, figsize=(10,
     if save_path is not None:
         plt.savefig(save_path, dpi=800, pad_inches=0.1, bbox_inches='tight')
 
+    plt.show()
+    plt.close(fig)
+
+def plot_chirp_mass(true_M, pred_M, title, figsize=(10,10), save_path=None):
+
+    # Test -- Y pred vs Y series CHIRP
+    fig = plt.figure(figsize=figsize)
+ 
+    plt.plot(true_M, pred_M, 'o', color='blue', alpha=0.5, label='Prediction')
+    plt.plot(true_M, true_M, color='red', linewidth=3, alpha=1, label= 'Target prediction')
+    plt.ylabel('Predicted Chirp Mass '+r'$(M_{\odot})$')
+    plt.xlabel('Real Chirp Mass '+r'$(M_{\odot})$')
+    plt.yscale("linear")
+    plt.title(title)
+    plt.grid(linewidth=1, color='black', alpha=0.2)
+    plt.legend(prop={'size':20})
+
+    plt.tight_layout()
+
+    ax = plt.gca()
+    ax.set_aspect('equal', adjustable='box')
+
+    if save_path is not None:
+        plt.savefig(save_path, dpi=800, pad_inches=0.1, bbox_inches='tight')
+
+    plt.show()
+    plt.close(fig)
+
+def plot_mass_ratio(true_q, pred_q, title, figsize=(10,10), save_path=None):
+
+    fig = plt.figure(figsize=figsize) 
+    plt.plot(true_q, pred_q, 'o', color='blue', alpha=0.5, label='Prediction')
+    plt.plot(true_q, true_q, color='red', linewidth=3, alpha=1, label= 'Target prediction')
+    plt.ylabel('Predicted Mass Ratio')
+    plt.xlabel('Real Mass Ratio')
+    plt.yscale("linear")
+    plt.title(title)
+    plt.grid(linewidth=1, color='black', alpha=0.2)
+    plt.legend(prop={'size':20})
+
+    plt.tight_layout()
+
+    if save_path is not None:
+        plt.savefig(save_path, dpi=800, pad_inches=0.1, bbox_inches='tight')
+        
     plt.show()
     plt.close(fig)
