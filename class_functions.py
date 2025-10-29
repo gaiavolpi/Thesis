@@ -123,47 +123,43 @@ def plot_signal_noise(y_test_pred, title, save_path=None, bins=100, figsize=(10,
     plt.show()
     plt.close(fig)
 
-def plot_chirp_mass(true_M, pred_M, title, figsize=(10,10), save_path=None):
+def plot_regression(true_M, pred_M, true_q, pred_q, title, ticks_M, ticks_q, figsize=(20,10), save_path=None):
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize, tight_layout=True)
 
-    # Test -- Y pred vs Y series CHIRP
-    fig = plt.figure(figsize=figsize)
- 
-    plt.plot(true_M, pred_M, 'o', color='blue', alpha=0.5, label='Prediction')
-    plt.plot(true_M, true_M, color='red', linewidth=3, alpha=1, label= 'Target prediction')
-    plt.ylabel('Predicted Chirp Mass '+r'$(M_{\odot})$')
-    plt.xlabel('Real Chirp Mass '+r'$(M_{\odot})$')
-    plt.yscale("linear")
-    plt.title(title)
-    plt.grid(linewidth=1, color='black', alpha=0.2)
-    plt.legend(prop={'size':20})
+    # --- Chirp Mass subplot (left) ---
+    ax1.plot(true_M, pred_M, 'o', color='blue', alpha=0.5, label='Prediction')
+    ax1.plot(true_M, true_M, color='red', linewidth=3, alpha=1, label='Target prediction')
+    ax1.set_ylabel('Predicted Chirp Mass '+r'$(M_{\odot})$', fontsize=25)
+    ax1.set_xlabel('Real Chirp Mass '+r'$(M_{\odot})$', fontsize=25)
+    ax1.set_yscale("linear")
+    ax1.tick_params(axis='both', labelsize=20)
+    ax1.grid(linewidth=1, color='black', alpha=0.2)
+    ax1.legend(prop={'size':20})
+    ax1.set_aspect('auto')
+    ax1.set_xticks(ticks_M)
+    ax1.set_yticks(ticks_M)
+    #ax1.set_aspect('equal', adjustable='box')
 
-    plt.tight_layout()
 
-    ax = plt.gca()
-    ax.set_aspect('equal', adjustable='box')
+    # --- Mass Ratio subplot (right) ---
+    ax2.plot(true_q, pred_q, 'o', color='blue', alpha=0.5, label='Prediction')
+    ax2.plot(true_q, true_q, color='red', linewidth=3, alpha=1, label='Target prediction')
+    ax2.set_ylabel('Predicted Mass Ratio', fontsize=25)
+    ax2.set_xlabel('Real Mass Ratio', fontsize=25)
+    ax2.tick_params(axis='both', labelsize=20)
+    ax2.set_yscale("linear")
+    ax2.grid(linewidth=1, color='black', alpha=0.2)
+    ax2.legend(prop={'size':20})
+    ax2.set_aspect('auto')
+    ax2.set_xticks(ticks_q)
+    ax2.set_yticks(ticks_q)
+    
+    # --- Central title across both subplots ---
+    fig.suptitle(title, fontsize=35, y=1.0)
 
+    # --- Save if requested ---
     if save_path is not None:
         plt.savefig(save_path, dpi=800, pad_inches=0.1, bbox_inches='tight')
 
     plt.show()
-    plt.close(fig)
-
-def plot_mass_ratio(true_q, pred_q, title, figsize=(10,10), save_path=None):
-
-    fig = plt.figure(figsize=figsize) 
-    plt.plot(true_q, pred_q, 'o', color='blue', alpha=0.5, label='Prediction')
-    plt.plot(true_q, true_q, color='red', linewidth=3, alpha=1, label= 'Target prediction')
-    plt.ylabel('Predicted Mass Ratio')
-    plt.xlabel('Real Mass Ratio')
-    plt.yscale("linear")
-    plt.title(title)
-    plt.grid(linewidth=1, color='black', alpha=0.2)
-    plt.legend(prop={'size':20})
-
-    plt.tight_layout()
-
-    if save_path is not None:
-        plt.savefig(save_path, dpi=800, pad_inches=0.1, bbox_inches='tight')
-        
-    plt.show()
-    plt.close(fig)
