@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.stats import gaussian_kde
 from tqdm import tqdm 
 
 def chirp_mass_m1(m1, q):
@@ -125,76 +126,76 @@ def MCMC(M_cnn, M_error, q, m_type, m_low=10.0, m_high=90.0, N_iter=50000, N_bur
     return m_chain
 
 
-def estimate_masses(M_cnn, q_cnn, M_error, plot=True):
-    """
-    Estimate m1 and m2 with uncertainties using MCMC
-    
-    Parameters:
-    -----------
-    M_cnn : float
-        Chirp mass from CNN (M☉)
-    q_cnn : float  
-        Mass ratio from CNN (m2/m1, ≤ 1)
-    M_error : float
-        Uncertainty on chirp mass (M☉)
-    plot : bool
-        Whether to plot posterior distributions
-    
-    Returns:
-    --------
-    results : dict
-        Dictionary with mass estimates and credible intervals
-    """
-    
-    # Run MCMC for both masses
-    m1_chain = MCMC(M_cnn, M_error, q_cnn, 'm1', seed=42)
-    m2_chain = MCMC(M_cnn, M_error, q_cnn, 'm2', seed=43)
-    
+def plot_posteriors(m1_chain, m2_chain, m1_true, m2_true, synthetic=True):
+
     # Calculate statistics
-    m1_mean = np.mean(m1_chain)
     m1_median = np.median(m1_chain)
     m1_CI_90 = np.percentile(m1_chain, [5, 95])
     
-    m2_mean = np.mean(m2_chain)
     m2_median = np.median(m2_chain)
     m2_CI_90 = np.percentile(m2_chain, [5, 95])
-    
-    results = {
-        'm1_mean': m1_mean,
-        'm1_median': m1_median,
-        'm1_CI_90': m1_CI_90,
-        'm2_mean': m2_mean,
-        'm2_median': m2_median,
-        'm2_CI_90': m2_CI_90,
-    }
-    
-    # Plot posteriors
-    if plot:
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
-        
-        # m1 posterior
-        ax1.hist(m1_chain, bins=50, density=True, alpha=0.7, edgecolor='black')
-        ax1.axvline(m1_median, color='red', linewidth=2, label=f'Median: {m1_median:.2f} M☉')
-        ax1.axvline(m1_CI_90[0], color='red', linestyle='--', linewidth=1, label=f'90% CI: [{m1_CI_90[0]:.2f}, {m1_CI_90[1]:.2f}]')
-        ax1.axvline(m1_CI_90[1], color='red', linestyle='--', linewidth=1)
-        ax1.set_xlabel('m₁ (M☉)')
-        ax1.set_ylabel('Probability Density')
-        ax1.set_title('Primary Mass Posterior')
-        ax1.legend()
-        ax1.grid(alpha=0.3)
-        
-        # m2 posterior
-        ax2.hist(m2_chain, bins=50, density=True, alpha=0.7, edgecolor='black')
-        ax2.axvline(m2_median, color='blue', linewidth=2, label=f'Median: {m2_median:.2f} M☉')
-        ax2.axvline(m2_CI_90[0], color='blue', linestyle='--', linewidth=1, label=f'90% CI: [{m2_CI_90[0]:.2f}, {m2_CI_90[1]:.2f}]')
-        ax2.axvline(m2_CI_90[1], color='blue', linestyle='--', linewidth=1)
-        ax2.set_xlabel('m₂ (M☉)')
-        ax2.set_ylabel('Probability Density')
-        ax2.set_title('Secondary Mass Posterior')
-        ax2.legend()
-        ax2.grid(alpha=0.3)
-        
-        plt.tight_layout()
-        plt.show()
-    
-    return results
+
+    m1 = m1_chain.flatten()
+    m2 = m2_chain.flatten()
+
+    kde = gaussian_kde(np.vstack([m1, m2]))
+
+    xmin, xmax = m1.min(), m1.max()
+    ymin, ymax = m2.min(), m2.max()
+
+    xx, yy = np.mgrid[xmin:xmax:200j, ymin:ymax:200j]
+    positions = np.vstack([xx.ravel(), yy.ravel()])
+    f = kde(positions).reshape(xx.shape)
+
+
+    fig = plt.figure(figsize=(10,10))
+    grid = plt.GridSpec(4,4, hspace=0.05, wspace=0.05)
+
+    ax_main  = fig.add_subplot(grid[1:4, 0:3])
+    ax_top   = fig.add_subplot(grid[0,     0:3], sharex=ax_main)
+    ax_right = fig.add_subplot(grid[1:4,     3], sharey=ax_main)
+
+    ax_main.contourf(xx, yy, f, levels=15, alpha=0.6, cmap="Blues")
+    ax_main.contour(xx, yy, f, colors='navy', linewidths=0.8)
+
+    ax_main.scatter(m1_true, m2_true, color="red", s=100, marker="*", label="True values" if synthetic else "LVK estimates")
+    ax_main.scatter(m1_median, m2_median, color="yellowgreen", s=100, marker="*", label="Posterior median")
+
+    # Lines
+    ax_main.axvline(m1_true, color="red", linestyle="-", lw=0.7)
+    ax_main.axhline(m2_true, color="red", linestyle="-", lw=0.7)
+
+    ax_main.axvline(m1_median, color="yellowgreen", linestyle="-", lw=0.7)
+    ax_main.axhline(m2_median, color="yellowgreen", linestyle="-", lw=0.7)
+
+    ax_main.axvline(m1_CI_90[0], color="gray", linestyle="--", lw=0.7)
+    ax_main.axvline(m1_CI_90[1], color="gray", linestyle="--", lw=0.7)
+    ax_main.axhline(m2_CI_90[0], color="gray", linestyle="--", lw=0.7)
+    ax_main.axhline(m2_CI_90[1], color="gray", linestyle="--", lw=0.7)
+
+
+    # --- Marginal: m1 ---
+    ax_top.hist(m1, bins=40, density=True, alpha=0.7, color="steelblue")
+    ax_top.axvline(m1_true, color="red", linestyle="-", lw=0.7)
+    ax_top.axvline(m1_median, color="yellowgreen", linestyle="-", lw=0.7)
+    ax_top.axvline(m1_CI_90[0], color="gray", linestyle="--", lw=0.7)
+    ax_top.axvline(m1_CI_90[1], color="gray", linestyle="--", lw=0.7)
+    plt.setp(ax_top.get_xticklabels(), visible=False)
+
+    # --- Marginal: m2 ---
+    ax_right.hist(m2, bins=40, density=True, alpha=0.7, orientation="horizontal", color="steelblue")
+    ax_right.axhline(m2_true, color="red", linestyle="-", lw=0.7)
+    ax_right.axhline(m2_median, color="yellowgreen", linestyle="-", lw=0.7)
+    ax_right.axhline(m2_CI_90[0], color="gray", linestyle="--", lw=0.7)
+    ax_right.axhline(m2_CI_90[1], color="gray", linestyle="--", lw=0.7)
+    plt.setp(ax_right.get_yticklabels(), visible=False)
+
+    # --- Styling ---
+    ax_main.set_xlabel(r"$m_1$ ($M_\odot$)")
+    ax_main.set_ylabel(r"$m_2$ ($M_\odot$)")
+    ax_main.legend(loc="upper right")
+    ax_main.grid(alpha=0.3, linestyle="--")
+    plt.tight_layout()
+    plt.show()
+
+    return None
