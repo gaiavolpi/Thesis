@@ -49,12 +49,13 @@ def make_dataset(X, y, batch_size, classification, shuffle=True):
 def plot_tp_fp(y_test_pred, title, save_path=None, bins=100, figsize=(10,8)):
     
     fig = plt.figure(figsize=figsize)
+    thresh_range = (0, 1)
     
     # Plot cumulative histograms
     plt.hist(y_test_pred[0::2], bins=bins, histtype='step', color='red', 
-             cumulative=-1, linewidth=2.5, label="True Positive Test")
+             cumulative=-1, linewidth=2.5, label="True Positive Test", range=thresh_range)
     plt.hist(y_test_pred[1::2], bins=bins, histtype='step', color='blue', 
-             cumulative=-1, linewidth=2.5, label="False Positive Test")
+             cumulative=-1, linewidth=2.5, label="False Positive Test",  range=thresh_range)
     
     plt.ylabel('Cumulative Tests', fontsize=25)
     plt.xlabel('Threshold', fontsize=25)
